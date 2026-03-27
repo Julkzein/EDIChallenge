@@ -1,42 +1,51 @@
-# ELCA EDI Challenge 2026 - Badge Generator 🚀
+# EDI Challenge 2026: Identity & Badging Platform
 
-A full-stack, gasless, 3D-interactive, AI-powered ELCA NFT Badge generator built for the EDI Challenge 2026. 
+A full-stack, enterprise-grade digital badge issuing platform developed for the ELCA EDI Challenge 2026. This platform enables the secure, gasless generation and distribution of non-fungible token (NFT) badges anchored on the Polygon blockchain.
 
-## 🌟 Key Features
-- **Swiss ELCA Teal Theme**: Professional, glassmorphism UI.
-- **3D Interactive Badges**: Move your mouse to tilt the card, and click to flip and see the Custom Issuer Visual on the back.
-- **AI Event Mode Extraction**: Paste unstructured text, and Deepseek extracts the fields (First/Last name, Dates, Project, Badge Type) automatically.
-- **Gasless Minting**: The backend pays the Amoy gas fee so users don't need a wallet or POL to mint!
-- **IPFS Storage**: Fully decentralized image and metadata storage via Pinata.
-- **Public Gallery**: Automatically fetches and displays recently minted Badges directly from the smart contract.
+## System Architecture
 
-## 🛠️ Setup Instructions
+The repository is structured as a monorepo containing two primary deployment environments:
 
-### 1. Fund the Backend Wallet
-The app uses a gasless relayer wallet to pay transaction fees. You provided the private key for `0xB7C6F915d8B7aD5f81Add6f76f778b82de937dB1`.
-Currently, this wallet has **0 POL** on the Polygon Amoy Testnet. You must fund it before deploying:
-1. Go to [Polygon Faucet](https://faucet.polygon.technology/).
-2. Request `Amoy POL` for the address `0xB7C6F915d8B7aD5f81Add6f76f778b82de937dB1`.
+1. **Contracts (`/contracts`)**
+   - Solidity smart contracts (`BadgeNFT.sol`) defining the ERC-721 token mechanics.
+   - Hardhat deployment pipeline for compiling and deploying to EVM-compatible networks.
+   - Configured for both Polygon Amoy (Testnet) and Polygon Mainnet (Production) routing.
 
-### 2. Deploy the Smart Contract
-Once your wallet has Amoy POL, deploy the customized `BadgeNFT` contract:
-```bash
-cd contracts
-npx hardhat run scripts/deploy.ts --network amoy
-```
-*Copy the deployed contract address from the terminal output.*
+2. **Web Application (`/web`)**
+   - Next.js frontend built with React and Tailwind CSS, featuring an interactive 3D Canvas integration.
+   - Serverless backend API (`/api/mint`, `/api/upload`) configured to broker transactions utilizing a gasless relayer wallet.
+   - Integrated with Pinata for decentralized IPFS metadata and image hosting.
+   - Multi-chain toggle functionality supporting dynamic RPC routing based on the target deployment environment.
 
-### 3. Configure the Web App
-Open `web/.env.local` and paste the deployed contract address:
-```env
-NEXT_PUBLIC_CONTRACT_ADDRESS=your_deployed_address_here
-```
-*(Your Private Key, Pinata JWT, and DeepSeek API Key are already securely loaded in this file!)*
+## Deployment Instructions
 
-### 4. Run the App
-```bash
-cd web
-npm install
-npm run dev
-```
-Navigate to `http://localhost:3000` to play with the Event Mode parser, see the 3D card preview, and Mint your Badge! Click the **Public Gallery** button on the homepage to see the live feed of all badges deployed from this contract.
+### Smart Contract Initialization
+
+1. Navigate to the `contracts` directory:
+   ```bash
+   cd contracts
+   npm install
+   ```
+2. Set the `PRIVATE_KEY` deployment variable in `contracts/.env`.
+3. Deploy to the desired network:
+   ```bash
+   npx hardhat run scripts/deploy.ts --network polygon
+   ```
+
+### Web Client
+
+1. Navigate to the `web` directory:
+   ```bash
+   cd web
+   npm install
+   ```
+2. Populate `web/.env.local` with your deployment credentials:
+   - `NEXT_PUBLIC_MAINNET_CONTRACT_ADDRESS`
+   - `PRIVATE_KEY`
+   - `PINATA_JWT`
+3. Launch the development server:
+   ```bash
+   npm run dev
+   ```
+
+The application will be accessible at `http://localhost:3000`.
