@@ -24,7 +24,7 @@ export default function Home() {
     imageLink: "",
     profileImage: "",
     recipientWallet: "",
-    network: "testnet",
+    network: "mainnet",
   });
 
   const [isMinting, setIsMinting] = useState(false);
