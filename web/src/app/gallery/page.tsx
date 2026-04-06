@@ -102,9 +102,16 @@ export default function Gallery() {
                   const hash = uri.replace("ipfs://", "");
                   const res = await fetch(`https://dweb.link/ipfs/${hash}`);
                   metadata = await res.json();
+                } else if (uri.startsWith("http://") || uri.startsWith("https://")) {
+                  const res = await fetch(uri);
+                  metadata = await res.json();
                 }
 
-                if (metadata) {
+                const EXCLUDED_OWNERS = [
+                  "0x189e56a151ada717d4c7ac0a1c031195d99866d3",
+                  "0xa173c2c03524be6ac128faa9b32569c40502ef11",
+                ];
+                if (metadata && !EXCLUDED_OWNERS.includes(owner.toLowerCase())) {
                   const getAttr = (trait: string) => metadata.attributes?.find((a: any) => a.trait_type === trait)?.value || "";
                   fetchedBadges.push({
                     id: i,
@@ -115,7 +122,12 @@ export default function Gallery() {
                     startDate: getAttr("Start Date") || "",
                     endDate: getAttr("End Date") || "",
                     badgeType: getAttr("Badge Type") as BadgeType | "Evolution",
-                    imageLink: metadata.image?.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/") || "",
+                    // New badges store back-face in event_image. Old badges stored it in image directly.
+                    imageLink: (() => {
+                      const raw = "event_image" in metadata ? metadata.event_image : metadata.image;
+                      if (!raw || raw === "ipfs://placeholder") return "";
+                      return raw.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+                    })(),
                     profileImage: metadata.profile_image?.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/") || "",
                     description: metadata.description || ""
                   });

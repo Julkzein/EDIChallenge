@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     if (process.env.PINATA_JWT && process.env.PINATA_JWT !== "dummy") {
       const upload = await pinata.upload.file(file);
       const url = `https://gateway.pinata.cloud/ipfs/${upload.IpfsHash}`;
-      return NextResponse.json({ url });
+      return NextResponse.json({ url, ipfsHash: upload.IpfsHash });
     } else {
       // Fallback if no Pinata keys
       return NextResponse.json({ url: "https://via.placeholder.com/400x600?text=No+Pinata+Key" });

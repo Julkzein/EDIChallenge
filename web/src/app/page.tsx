@@ -1,15 +1,23 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { BadgeType } from "@/components/BadgeCard";
 import dynamic from "next/dynamic";
 import { Loader2, Send, UploadCloud, Wand2, X, Crop, Globe } from "lucide-react";
 import Cropper, { Point, Area } from "react-easy-crop";
 import { getCroppedImg } from "@/utils/cropImage";
 
+import { toBlob } from "html-to-image";
+import { BADGE_THEMES } from "@/components/BadgeCard";
+
 const BadgeCard = dynamic(
   () => import("@/components/BadgeCard").then((mod) => mod.BadgeCard),
   { ssr: false, loading: () => <div className="w-80 h-[28rem] rounded-[2rem] bg-white/5 animate-pulse border border-white/10" /> }
+);
+
+const BadgeCardFrontVisual = dynamic(
+  () => import("@/components/BadgeCard").then((mod) => mod.BadgeCardFrontVisual),
+  { ssr: false }
 );
 
 export default function Home() {
@@ -30,7 +38,7 @@ export default function Home() {
   const [isMinting, setIsMinting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
-  const [mintResult, setMintResult] = useState<{ hash: string; url: string; evolved?: boolean } | null>(null);
+  const [mintResult, setMintResult] = useState<{ hash: string; url: string; evolved?: boolean; tokenId?: string; contractAddress?: string } | null>(null);
 
   // AI Extraction Modal State
   const [isExtractModalOpen, setIsExtractModalOpen] = useState(false);
@@ -56,8 +64,19 @@ export default function Home() {
     aspect: 1,
   });
 
+  // Local blob URL for the off-screen capture — avoids CORS issues with Pinata gateway
+  const [captureProfileUrl, setCaptureProfileUrl] = useState("");
+
+  // Revoke old blob URL when it changes to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (captureProfileUrl) URL.revokeObjectURL(captureProfileUrl);
+    };
+  }, [captureProfileUrl]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const profileInputRef = useRef<HTMLInputElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -101,6 +120,11 @@ export default function Home() {
       const croppedFile = await getCroppedImg(imageSrc, croppedAreaPixels);
       if (!croppedFile) throw new Error("Could not construct image from canvas");
 
+      // Keep a local blob URL for the off-screen capture (same-origin, no CORS)
+      if (isProfile) {
+        setCaptureProfileUrl(URL.createObjectURL(croppedFile));
+      }
+
       const form = new FormData();
       form.append("file", croppedFile);
 
@@ -131,11 +155,57 @@ export default function Home() {
     e.preventDefault();
     setIsMinting(true);
     setMintResult(null);
+
+    let compiledImageHash = "";
+
+    try {
+      if (badgeRef.current) {
+        console.log("[Capture] Starting off-screen badge capture...");
+        // cacheBust is intentionally omitted — it corrupts blob:// URLs
+        const blob = await toBlob(badgeRef.current, { pixelRatio: 2 });
+        if (blob && blob.size > 0) {
+          console.log(`[Capture] ✅ Blob captured: ${(blob.size / 1024).toFixed(1)} KB`);
+          const form = new FormData();
+          form.append("file", blob, "badge.png");
+
+          console.log("[Capture] Uploading compiled badge to IPFS...");
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: form,
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            compiledImageHash = data.ipfsHash;
+            console.log(`[Capture] ✅ IPFS hash: ${compiledImageHash}`);
+          } else {
+            console.warn("[Capture] ⚠️ Upload failed:", await res.text());
+          }
+        } else {
+          console.warn("[Capture] ⚠️ toBlob returned null or empty blob");
+        }
+      } else {
+        console.warn("[Capture] ⚠️ badgeRef is null — off-screen element not mounted");
+      }
+    } catch (err) {
+      console.error("[Capture] ❌ Capture threw:", err);
+    }
+
+    if (!compiledImageHash) {
+      const proceed = confirm(
+        "Could not generate the badge image for the NFT. The NFT will mint without a visual preview in wallets like MetaMask.\n\nMint anyway?"
+      );
+      if (!proceed) {
+        setIsMinting(false);
+        return;
+      }
+    }
+
     try {
       const res = await fetch("/api/mint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, compiledImageHash }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -165,6 +235,17 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 lg:p-16 overflow-x-hidden">
+      {/* Off-screen container for image generation — must be painted by browser for html-to-image */}
+      <div aria-hidden="true" style={{position: 'absolute', left: '-9999px', top: 0, pointerEvents: 'none'}}>
+        <div ref={badgeRef} className="w-80 h-[28rem] relative" style={{background: 'transparent'}}>
+          <BadgeCardFrontVisual
+            {...formData}
+            profileImage={captureProfileUrl || formData.profileImage}
+            theme={BADGE_THEMES[formData.badgeType] || BADGE_THEMES["Attending"]}
+          />
+        </div>
+      </div>
+
       {/* Navbar */}
       <nav className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center py-4 mb-8 border-b border-white/10 gap-4 md:gap-0">
         <div>
@@ -396,6 +477,19 @@ export default function Home() {
                   <a href={mintResult.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#00b2a9]/80 hover:text-[#00b2a9] transition underline break-all block font-mono">
                     Transaction Log / Explorer
                   </a>
+                  {mintResult.tokenId && mintResult.contractAddress && (
+                    <div className="mt-2 p-3 bg-black/30 rounded-lg border border-white/10 space-y-2">
+                      <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold">Import in MetaMask / Rabby</p>
+                      <div>
+                        <p className="text-white/40 text-[10px]">Contract</p>
+                        <p className="text-white/80 text-[11px] font-mono break-all">{mintResult.contractAddress}</p>
+                      </div>
+                      <div>
+                        <p className="text-white/40 text-[10px]">Token ID</p>
+                        <p className="text-[#00b2a9] text-sm font-mono font-bold">#{mintResult.tokenId}</p>
+                      </div>
+                    </div>
+                  )}
                   {mintResult.evolved && (
                     <div className="mt-4 pt-4 border-t border-white/10">
                       <h4 className="text-white/90 font-bold text-xs tracking-widest uppercase mb-1">Milestone Credential Unlocked</h4>

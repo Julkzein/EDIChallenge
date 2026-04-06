@@ -79,7 +79,10 @@ export async function POST(request: Request) {
     const metadata = {
       name: `${data.eventName} Badge - ${data.badgeType}`,
       description: data.description || `Issued for ${data.eventName}`,
-      image: data.imageLink || "ipfs://placeholder",
+      image: data.compiledImageHash
+        ? `https://dweb.link/ipfs/${data.compiledImageHash}`
+        : (data.imageLink || ""),
+      event_image: data.imageLink || "",
       profile_image: data.profileImage || "",
       attributes: [
         { trait_type: "Badge Type", value: data.badgeType },
@@ -94,7 +97,7 @@ export async function POST(request: Request) {
     let tokenURI = "";
     if (process.env.PINATA_JWT && process.env.PINATA_JWT !== "dummy") {
       const upload = await pinata.upload.json(metadata);
-      tokenURI = `ipfs://${upload.IpfsHash}`;
+      tokenURI = `https://dweb.link/ipfs/${upload.IpfsHash}`;
     } else {
       tokenURI = `data:application/json;base64,${Buffer.from(JSON.stringify(metadata)).toString('base64')}`;
     }
@@ -102,8 +105,8 @@ export async function POST(request: Request) {
     if (!walletClient || !account) {
       throw new Error("Backend wallet not configured in .env");
     }
-    
-    const { request: contractReq } = await walletClient.simulateContract({
+
+    const { request: contractReq, result: mintedTokenId } = await walletClient.simulateContract({
       address: contractAddress as `0x${string}`,
       abi: ABI,
       functionName: 'mintBadge',
@@ -131,7 +134,7 @@ export async function POST(request: Request) {
       let evoTokenURI = `data:application/json;base64,${Buffer.from(JSON.stringify(evoMetadata)).toString('base64')}`;
       if (process.env.PINATA_JWT && process.env.PINATA_JWT !== "dummy") {
         const evoUpload = await pinata.upload.json(evoMetadata);
-        evoTokenURI = `ipfs://${evoUpload.IpfsHash}`;
+        evoTokenURI = `https://dweb.link/ipfs/${evoUpload.IpfsHash}`;
       }
 
       try {
@@ -147,8 +150,10 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ 
-      hash, 
+    return NextResponse.json({
+      hash,
+      tokenId: mintedTokenId != null ? String(mintedTokenId) : undefined,
+      contractAddress,
       url: isMainnet ? `https://polygonscan.com/tx/${hash}` : `https://amoy.polygonscan.com/tx/${hash}`,
       evolved,
       evolutionHash

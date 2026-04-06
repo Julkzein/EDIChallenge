@@ -6,6 +6,37 @@ import Image from "next/image";
 
 export type BadgeType = "Attending" | "Sponsoring" | "Speaking" | "Evolution";
 
+export const BADGE_THEMES: Record<string, any> = {
+  Attending: {
+    bg: "linear-gradient(135deg, rgba(1, 33, 64, 0.95), rgba(0, 90, 143, 0.9))",
+    glow: "rgba(0, 178, 169, 0.8)",
+    textAccent: "text-[#00b2a9]",
+    badgePill: "bg-[#00b2a9]/20 border-[#00b2a9]/30 text-[#00b2a9]",
+    borderAccent: "border-[#00b2a9]"
+  },
+  Speaking: {
+    bg: "linear-gradient(135deg, rgba(30, 20, 5, 0.95), rgba(90, 60, 10, 0.9))",
+    glow: "rgba(234, 179, 8, 0.8)",
+    textAccent: "text-yellow-400",
+    badgePill: "bg-yellow-500/20 border-yellow-500/30 text-yellow-400 font-black tracking-widest",
+    borderAccent: "border-yellow-400"
+  },
+  Sponsoring: {
+    bg: "linear-gradient(135deg, rgba(15, 20, 25, 0.95), rgba(50, 60, 70, 0.9))",
+    glow: "rgba(200, 210, 225, 0.8)",
+    textAccent: "text-slate-200",
+    badgePill: "bg-slate-300/20 border-slate-300/30 text-slate-200 font-black tracking-widest",
+    borderAccent: "border-slate-300"
+  },
+  Evolution: {
+    bg: "linear-gradient(135deg, rgba(40, 0, 80, 0.95), rgba(100, 0, 150, 0.9))",
+    glow: "rgba(255, 100, 255, 0.9)",
+    textAccent: "text-fuchsia-400",
+    badgePill: "bg-fuchsia-500/30 border-fuchsia-500/50 text-fuchsia-300 font-black tracking-widest",
+    borderAccent: "border-fuchsia-400"
+  }
+};
+
 export interface BadgeCardProps {
   firstName: string;
   lastName: string;
@@ -13,9 +44,114 @@ export interface BadgeCardProps {
   startDate: string;
   endDate: string;
   badgeType: BadgeType;
-  imageLink: string;
+  imageLink?: string;
   profileImage?: string;
   description?: string;
+}
+
+export function BadgeCardFrontVisual({
+  firstName,
+  lastName,
+  eventName,
+  startDate,
+  endDate,
+  badgeType,
+  profileImage,
+  description,
+  theme,
+  bgPos
+}: Omit<BadgeCardProps, "imageLink"> & { theme: any; bgPos?: any }) {
+  return (
+    <div 
+      className="absolute inset-0 w-full h-full backface-hidden rounded-[2rem] border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
+      style={{ 
+        background: theme.bg,
+        backdropFilter: "blur(20px)"
+      }}
+    >
+      {/* Holographic Glow Layer */}
+      {bgPos ? (
+        <motion.div 
+          className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
+          style={{ background: `radial-gradient(circle at ${bgPos}, ${theme.glow} 0%, transparent 65%)` }}
+        />
+      ) : (
+        <div 
+          className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
+          style={{ background: `radial-gradient(circle at 50% 50%, ${theme.glow} 0%, transparent 65%)` }}
+        />
+      )}
+
+      <div className="flex flex-col h-full relative z-10">
+        {/* Background design elements */}
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-bl-[100px] pointer-events-none" />
+        
+        {/* Header / Dynamic Event */}
+        <div className="flex justify-between items-start pt-6 px-6 relative z-20">
+          <div className="flex items-center gap-2">
+            <div>
+              <h3 className="text-white/90 font-bold text-sm tracking-widest uppercase truncate w-64">{eventName || "Event Name"}</h3>
+              <p className={`${theme.textAccent} text-[10px] font-mono tracking-widest uppercase opacity-80`}>Certified Badge</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Body */}
+        <div className="mt-2 px-6 pb-6 flex-1 flex flex-col relative z-10 w-full items-center">
+          {/* Profile Image (Optional) */}
+          {profileImage && (
+            <div className="mb-1 mt-0">
+              <div className={`w-28 h-28 rounded-full border-[3px] ${theme.borderAccent} p-1.5 overflow-hidden shadow-[0_0_25px_rgba(0,0,0,0.5)] bg-[#011122]`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={profileImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
+              </div>
+            </div>
+          )}
+
+          <h2 className={`font-black tracking-tight mb-1 text-center text-white ${profileImage ? 'text-2xl mt-1' : 'text-3xl mt-4'}`}>
+            {firstName || "First"} {lastName || "Last"}
+          </h2>
+          
+          <div className={`px-5 py-1 rounded-full text-[11px] uppercase border ${theme.badgePill} mb-2 inline-block`}>
+            {badgeType}
+          </div>
+
+          {description && description !== `Issued for ${eventName}` && (
+            <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
+              <p className="text-white/90 text-[13px] font-medium text-center max-w-[95%] line-clamp-3 break-words leading-snug drop-shadow-md">
+                {description}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-auto bg-black/30 rounded-2xl p-4 border border-white/10 backdrop-blur-md w-full relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-1 h-full ${theme.borderAccent.replace('border-', 'bg-')} opacity-50`}/>
+            <p className={`text-[10px] uppercase tracking-widest font-bold mb-2 ml-2 ${theme.textAccent} opacity-80`}>
+              Date
+            </p>
+            <div className={`grid ${endDate ? 'grid-cols-2 gap-x-4' : 'grid-cols-1'} gap-y-2 ml-2`}>
+              <div className="space-y-0.5">
+                {endDate && (
+                  <p className="text-white/40 text-[9px] uppercase tracking-widest font-semibold flex items-center gap-1.5">
+                    Start
+                  </p>
+                )}
+                <p className="text-white/90 text-[11px] font-mono">{startDate || "----/--/--"}</p>
+              </div>
+              {endDate && (
+                <div className="space-y-0.5">
+                  <p className="text-white/40 text-[9px] uppercase tracking-widest font-semibold flex items-center gap-1.5">
+                    End
+                  </p>
+                  <p className="text-white/90 text-[11px] font-mono">{endDate}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function BadgeCard({
@@ -69,38 +205,7 @@ export function BadgeCard({
     y.set(0);
   };
 
-  // Luxury Tier Styling
-  const themes: Record<string, any> = {
-    Attending: {
-      bg: "linear-gradient(135deg, rgba(1, 33, 64, 0.95), rgba(0, 90, 143, 0.9))",
-      glow: "rgba(0, 178, 169, 0.8)",
-      textAccent: "text-[#00b2a9]",
-      badgePill: "bg-[#00b2a9]/20 border-[#00b2a9]/30 text-[#00b2a9]",
-      borderAccent: "border-[#00b2a9]"
-    },
-    Speaking: {
-      bg: "linear-gradient(135deg, rgba(30, 20, 5, 0.95), rgba(90, 60, 10, 0.9))",
-      glow: "rgba(234, 179, 8, 0.8)", // Gold Glow
-      textAccent: "text-yellow-400",
-      badgePill: "bg-yellow-500/20 border-yellow-500/30 text-yellow-400 font-black tracking-widest",
-      borderAccent: "border-yellow-400"
-    },
-    Sponsoring: {
-      bg: "linear-gradient(135deg, rgba(15, 20, 25, 0.95), rgba(50, 60, 70, 0.9))",
-      glow: "rgba(200, 210, 225, 0.8)", // Platinum Glow
-      textAccent: "text-slate-200",
-      badgePill: "bg-slate-300/20 border-slate-300/30 text-slate-200 font-black tracking-widest",
-      borderAccent: "border-slate-300"
-    },
-    Evolution: {
-      bg: "linear-gradient(135deg, rgba(40, 0, 80, 0.95), rgba(100, 0, 150, 0.9))",
-      glow: "rgba(255, 100, 255, 0.9)", // Diamond / Amethyst Glow
-      textAccent: "text-fuchsia-400",
-      badgePill: "bg-fuchsia-500/30 border-fuchsia-500/50 text-fuchsia-300 font-black tracking-widest",
-      borderAccent: "border-fuchsia-400"
-    }
-  };
-  const theme = themes[badgeType || "Attending"] || themes["Attending"];
+  const theme = BADGE_THEMES[badgeType || "Attending"] || BADGE_THEMES["Attending"];
 
   return (
     <div
@@ -119,91 +224,18 @@ export function BadgeCard({
         }}
       >
         {/* FRONT OF CARD */}
-        <div 
-          className="absolute inset-0 w-full h-full backface-hidden rounded-[2rem] border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
-          style={{ 
-            background: theme.bg,
-            backdropFilter: "blur(20px)"
-          }}
-        >
-          {/* Holographic Glow Layer */}
-          <motion.div 
-            className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
-            style={{
-              background: `radial-gradient(circle at ${bgPos}, ${theme.glow} 0%, transparent 65%)`
-            }}
-          />
-
-          <div className="flex flex-col h-full relative z-10">
-            {/* Background design elements */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-bl-[100px] pointer-events-none" />
-            
-            {/* Header / Dynamic Event */}
-            <div className="flex justify-between items-start pt-6 px-6 relative z-20">
-              <div className="flex items-center gap-2">
-                <div>
-                  <h3 className="text-white/90 font-bold text-sm tracking-widest uppercase truncate w-64">{eventName || "Event Name"}</h3>
-                  <p className={`${theme.textAccent} text-[10px] font-mono tracking-widest uppercase opacity-80`}>Certified Badge</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Content Body */}
-            <div className="mt-2 px-6 pb-6 flex-1 flex flex-col relative z-10 w-full items-center">
-              
-              {/* Profile Image (Optional) */}
-              {profileImage && (
-                <div className="mb-1 mt-0">
-                  <div className={`w-28 h-28 rounded-full border-[3px] ${theme.borderAccent} p-1.5 overflow-hidden shadow-[0_0_25px_rgba(0,0,0,0.5)] bg-[#011122]`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={profileImage} alt="Profile" className="w-full h-full object-cover rounded-full" />
-                  </div>
-                </div>
-              )}
-
-              <h2 className={`font-black tracking-tight mb-1 text-center text-white ${profileImage ? 'text-2xl mt-1' : 'text-3xl mt-4'}`}>
-                {firstName || "First"} {lastName || "Last"}
-              </h2>
-              
-              <div className={`px-5 py-1 rounded-full text-[11px] uppercase border ${theme.badgePill} mb-2 inline-block`}>
-                {badgeType}
-              </div>
-
-              {description && description !== `Issued for ${eventName}` && (
-                <div className="flex-1 w-full flex items-center justify-center overflow-hidden">
-                  <p className="text-white/90 text-[13px] font-medium text-center max-w-[95%] line-clamp-3 break-words leading-snug drop-shadow-md">
-                    {description}
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-auto bg-black/30 rounded-2xl p-4 border border-white/10 backdrop-blur-md w-full relative overflow-hidden">
-                <div className={`absolute top-0 left-0 w-1 h-full ${theme.borderAccent.replace('border-', 'bg-')} opacity-50`}/>
-                <p className={`text-[10px] uppercase tracking-widest font-bold mb-2 ml-2 ${theme.textAccent} opacity-80`}>
-                  Date
-                </p>
-                <div className={`grid ${endDate ? 'grid-cols-2 gap-x-4' : 'grid-cols-1'} gap-y-2 ml-2`}>
-                  <div className="space-y-0.5">
-                    {endDate && (
-                      <p className="text-white/40 text-[9px] uppercase tracking-widest font-semibold flex items-center gap-1.5">
-                        Start
-                      </p>
-                    )}
-                    <p className="text-white/90 text-[11px] font-mono">{startDate || "----/--/--"}</p>
-                  </div>
-                  {endDate && (
-                    <div className="space-y-0.5">
-                      <p className="text-white/40 text-[9px] uppercase tracking-widest font-semibold flex items-center gap-1.5">
-                        End
-                      </p>
-                      <p className="text-white/90 text-[11px] font-mono">{endDate}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <BadgeCardFrontVisual 
+          firstName={firstName}
+          lastName={lastName}
+          eventName={eventName}
+          startDate={startDate}
+          endDate={endDate}
+          badgeType={badgeType}
+          profileImage={profileImage}
+          description={description}
+          theme={theme}
+          bgPos={bgPos}
+        />
 
         {/* BACK OF CARD */}
         <div 
