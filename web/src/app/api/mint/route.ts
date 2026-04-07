@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       name: `${data.eventName} Badge - ${data.badgeType}`,
       description: data.description || `Issued for ${data.eventName}`,
       image: data.compiledImageHash
-        ? `https://dweb.link/ipfs/${data.compiledImageHash}`
+        ? `https://gateway.pinata.cloud/ipfs/${data.compiledImageHash}`
         : (data.imageLink || ""),
       event_image: data.imageLink || "",
       profile_image: data.profileImage || "",
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     let tokenURI = "";
     if (process.env.PINATA_JWT && process.env.PINATA_JWT !== "dummy") {
       const upload = await pinata.upload.json(metadata);
-      tokenURI = `https://dweb.link/ipfs/${upload.IpfsHash}`;
+      tokenURI = `https://gateway.pinata.cloud/ipfs/${upload.IpfsHash}`;
     } else {
       tokenURI = `data:application/json;base64,${Buffer.from(JSON.stringify(metadata)).toString('base64')}`;
     }
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
       let evoTokenURI = `data:application/json;base64,${Buffer.from(JSON.stringify(evoMetadata)).toString('base64')}`;
       if (process.env.PINATA_JWT && process.env.PINATA_JWT !== "dummy") {
         const evoUpload = await pinata.upload.json(evoMetadata);
-        evoTokenURI = `https://dweb.link/ipfs/${evoUpload.IpfsHash}`;
+        evoTokenURI = `https://gateway.pinata.cloud/ipfs/${evoUpload.IpfsHash}`;
       }
 
       try {

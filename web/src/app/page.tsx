@@ -20,6 +20,11 @@ const BadgeCardFrontVisual = dynamic(
   { ssr: false }
 );
 
+const BadgeCardSquareVisual = dynamic(
+  () => import("@/components/BadgeCard").then((mod) => mod.BadgeCardSquareVisual),
+  { ssr: false }
+);
+
 export default function Home() {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -237,12 +242,12 @@ export default function Home() {
     <main className="min-h-screen p-4 md:p-8 lg:p-16 overflow-x-hidden">
       {/* Off-screen container for image generation — must be painted by browser for html-to-image */}
       <div aria-hidden="true" style={{position: 'absolute', left: '-9999px', top: 0, pointerEvents: 'none'}}>
-        <div ref={badgeRef} className="w-80 h-[28rem] relative" style={{background: 'transparent'}}>
-          <BadgeCardFrontVisual
-            {...formData}
-            profileImage={captureProfileUrl || formData.profileImage}
-            theme={BADGE_THEMES[formData.badgeType] || BADGE_THEMES["Attending"]}
-          />
+        <div ref={badgeRef} className="w-[480px] h-[480px] relative flex items-center justify-center overflow-hidden bg-[#010810] shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+           <BadgeCardSquareVisual
+              {...formData}
+              profileImage={captureProfileUrl || formData.profileImage}
+              theme={BADGE_THEMES[formData.badgeType] || BADGE_THEMES["Attending"]}
+           />
         </div>
       </div>
 
@@ -510,6 +515,28 @@ export default function Home() {
 
           <div className="flex justify-center w-full lg:justify-start transform scale-75 sm:scale-90 md:scale-100 origin-top h-[32rem]">
             <BadgeCard {...formData} />
+          </div>
+
+          {/* New Square NFT Export Preview */}
+          <div className="mt-4 flex flex-col items-center lg:items-start w-full px-4">
+             <div className="flex items-center justify-between w-full mb-4">
+               <h3 className="text-sm font-bold text-white/50 uppercase tracking-widest">NFT Format</h3>
+             </div>
+
+             <div className="flex items-start gap-6 w-full">
+               {/* Dynamic 1:1 Preview Viewport */}
+               <div className="w-[200px] h-[200px] relative flex items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 shrink-0" style={{ background: '#010810' }}>
+                   <div className="w-full h-full relative z-10 overflow-hidden shadow-2xl">
+                        <div style={{ transform: 'scale(0.416)', transformOrigin: 'top left' }} className="w-[480px] h-[480px] absolute top-0 left-0">
+                           <BadgeCardSquareVisual
+                             {...formData}
+                             profileImage={captureProfileUrl || formData.profileImage}
+                             theme={BADGE_THEMES[formData.badgeType] || BADGE_THEMES["Attending"]}
+                           />
+                        </div>
+                   </div>
+               </div>
+             </div>
           </div>
         </div>
       </div>
